@@ -2,49 +2,43 @@
 
 namespace App\Providers;
 
-use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Date;
-use Illuminate\Support\Facades\DB;
+use App\Enums\PermissionDecision;
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        $this->configureDefaults();
-    }
+        /*
+         * SPEC-001 permission precedence:
+         *
+         *   explicit user DENY / ALLOW
+         *        ↓
+         *   base Spatie role/direct permission
+         *        ↓
+         *   normal Laravel Gate / policy handling
+         *
+         * Spatie's built-in Gate::before registration is disabled in
+         * config/permission.php so there is only one permission-check
+         * entry point and explicit DENY can truly override a role grant.
+         */
+        Gate::before(function (User $user, string $ability) {
+            $override = $user->permissionOverrides()
+                ->where('permission_key', $ability)
+                ->first();
 
-    /**
-     * Configure default behaviors for production-ready applications.
-     */
-    protected function configureDefaults(): void
-    {
-        Date::use(CarbonImmutable::class);
+            if ($override) {
+                return $override->decision === PermissionDecision::ALLOW;
+            }
 
-        DB::prohibitDestructiveCommands(
-            app()->isProduction(),
-        );
-
-        Password::defaults(fn (): ?Password => app()->isProduction()
-            ? Password::min(12)
-                ->mixedCase()
-                ->letters()
-                ->numbers()
-                ->symbols()
-                ->uncompromised()
-            : null,
-        );
+            return $user->checkPermissionTo($ability) ? true : null;
+        });
     }
 }
