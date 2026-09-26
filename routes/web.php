@@ -3,10 +3,18 @@
 use App\Enums\RoleName;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AllowedEmailController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Employee\EmployeeDashboardController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Qc\QcDashboardController;
+use App\Http\Controllers\RolePlaceholderController;
+use App\Http\Controllers\TeamLeader\TeamLeaderDashboardController;
+use App\Http\Controllers\TeamLeader\TeamMemberController;
 use App\Http\Middleware\EnsureOfficeSessionIsValid;
+use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,11 +38,13 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function () {
     Route::get('/dashboard', function (Request $request) {
-        if ($request->user()->hasRole(RoleName::SUPER_ADMIN->value)) {
-            return redirect()->route('admin.dashboard');
-        }
-
-        return view('dashboard', ['user' => $request->user()]);
+        return match (true) {
+            $request->user()->hasRole(RoleName::SUPER_ADMIN->value) => redirect()->route('admin.dashboard'),
+            $request->user()->hasRole(RoleName::TEAM_LEADER->value) => redirect()->route('team-leader.dashboard'),
+            $request->user()->hasRole(RoleName::EMPLOYEE->value) => redirect()->route('employee.dashboard'),
+            $request->user()->hasRole(RoleName::QC->value) => redirect()->route('qc.dashboard'),
+            default => abort(403),
+        };
     })->name('dashboard');
 
     Route::post('/logout', function (Request $request) {
@@ -44,6 +54,15 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
 
         return redirect()->route('login');
     })->name('logout');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])
+        ->name('notifications.index');
+
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])
+        ->name('notifications.read-all');
+
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])
+        ->name('notifications.read');
 
     Route::prefix('admin')
         ->name('admin.')
@@ -74,5 +93,36 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
             Route::put('/users/{user}/qc-scopes', [UserController::class, 'updateQcScopes'])->name('users.qc-scopes');
             Route::post('/users/{user}/permission-overrides', [UserController::class, 'setPermissionOverride'])->name('users.permission-overrides.store');
             Route::delete('/users/{user}/permission-overrides/{override}', [UserController::class, 'removePermissionOverride'])->name('users.permission-overrides.destroy');
+
+            Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+            Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
+        });
+
+    Route::prefix('team-leader')
+        ->name('team-leader.')
+        ->middleware(EnsureRole::class.':'.RoleName::TEAM_LEADER->value)
+        ->group(function () {
+            Route::get('/', TeamLeaderDashboardController::class)->name('dashboard');
+            Route::get('/team', [TeamMemberController::class, 'index'])->name('members.index');
+            Route::get('/team/{user}', [TeamMemberController::class, 'show'])->name('members.show');
+            Route::put('/team/{user}/status', [TeamMemberController::class, 'updateStatus'])->name('members.status');
+            Route::put('/team/{user}/capabilities', [TeamMemberController::class, 'updateCapabilities'])->name('members.capabilities');
+            Route::get('/section/{section}', RolePlaceholderController::class)->name('placeholder');
+        });
+
+    Route::prefix('employee')
+        ->name('employee.')
+        ->middleware(EnsureRole::class.':'.RoleName::EMPLOYEE->value)
+        ->group(function () {
+            Route::get('/', EmployeeDashboardController::class)->name('dashboard');
+            Route::get('/section/{section}', RolePlaceholderController::class)->name('placeholder');
+        });
+
+    Route::prefix('qc')
+        ->name('qc.')
+        ->middleware(EnsureRole::class.':'.RoleName::QC->value)
+        ->group(function () {
+            Route::get('/', QcDashboardController::class)->name('dashboard');
+            Route::get('/section/{section}', RolePlaceholderController::class)->name('placeholder');
         });
 });

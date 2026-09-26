@@ -23,6 +23,8 @@
                     ['admin.teams.index', 'Teams'],
                     ['admin.allowed-emails.index', 'Allowed Gmail'],
                     ['admin.users.index', 'Users'],
+                    ['admin.audit-logs.index', 'Audit Logs'],
+                    ['notifications.index', 'Notifications'],
                 ];
             @endphp
 
@@ -83,7 +85,6 @@
                 </div>
             @endif
 
-            {{ $slot ?? '' }}
             @yield('content')
         </main>
     </div>
