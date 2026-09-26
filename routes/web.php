@@ -12,8 +12,11 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\Employee\EmployeeDashboardController;
 use App\Http\Controllers\Employee\EmployeeWorkController;
+use App\Http\Controllers\Employee\QcSubmissionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Qc\QcDashboardController;
+use App\Http\Controllers\Qc\QcQueueController;
+use App\Http\Controllers\Qc\QcReviewController;
 use App\Http\Controllers\RolePlaceholderController;
 use App\Http\Controllers\TeamLeader\TeamLeaderDashboardController;
 use App\Http\Controllers\TeamLeader\TeamMemberController;
@@ -149,6 +152,8 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
             Route::get('/work/{assignment}', [EmployeeWorkController::class, 'show'])->name('work.show');
             Route::post('/work/{assignment}/start', [EmployeeWorkController::class, 'start'])->name('work.start');
             Route::post('/work/{assignment}/progress', [EmployeeWorkController::class, 'progress'])->name('work.progress');
+            Route::post('/work/{assignment}/qc-submit', [QcSubmissionController::class, 'store'])->name('work.qc-submit');
+            Route::post('/work/{assignment}/qc-rework/{review}', [QcSubmissionController::class, 'storeRework'])->name('work.qc-rework');
             Route::get('/section/{section}', RolePlaceholderController::class)->name('placeholder');
         });
 
@@ -157,6 +162,10 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
         ->middleware(EnsureRole::class.':'.RoleName::QC->value)
         ->group(function () {
             Route::get('/', QcDashboardController::class)->name('dashboard');
+            Route::get('/queue', [QcQueueController::class, 'index'])->name('queue');
+            Route::get('/submissions/{submission}', [QcReviewController::class, 'show'])->name('submissions.show');
+            Route::post('/submissions/{submission}/start', [QcReviewController::class, 'start'])->name('submissions.start');
+            Route::post('/submissions/{submission}/finish', [QcReviewController::class, 'finish'])->name('submissions.finish');
             Route::get('/section/{section}', RolePlaceholderController::class)->name('placeholder');
         });
 });

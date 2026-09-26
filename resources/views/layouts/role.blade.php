@@ -33,9 +33,7 @@
         ],
         'QC' => [
             ['qc.dashboard', 'QC Dashboard'],
-            ['qc.placeholder', 'Waiting for QC', ['section' => 'waiting-qc']],
-            ['qc.placeholder', 'Rework Resubmitted', ['section' => 'rework-resubmitted']],
-            ['qc.placeholder', 'Reviewed History', ['section' => 'reviewed-history']],
+            ['qc.queue', 'QC Queue'],
             ['notifications.index', 'Notifications'],
         ],
         default => [],
