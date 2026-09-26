@@ -102,7 +102,16 @@ class ClientController extends Controller
             'tierHistories.changer:id,name,email',
         ]);
 
-        return view('clients.show', compact('client'));
+        $workOrders = $client->workOrders()
+            ->with([
+                'creator:id,name,email',
+                'assignments.employee:id,name,email',
+                'assignments.section:id,name',
+            ])
+            ->limit(20)
+            ->get();
+
+        return view('clients.show', compact('client', 'workOrders'));
     }
 
     public function edit(Request $request, Client $client): View

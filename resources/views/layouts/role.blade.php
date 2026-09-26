@@ -15,8 +15,9 @@
         'TEAM_LEADER' => [
             ['team-leader.dashboard', 'Dashboard'],
             ['clients.index', 'Clients'],
+            ['work.create', 'Assign Work'],
             ['team-leader.members.index', 'My Team'],
-            ['team-leader.placeholder', 'Team Work', ['section' => 'team-work']],
+            ['work.index', 'Team Work'],
             ['team-leader.placeholder', 'Performance', ['section' => 'performance']],
             ['team-leader.placeholder', 'Improvement Sessions', ['section' => 'improvement-sessions']],
             ['team-leader.placeholder', 'Monthly Reports', ['section' => 'monthly-reports']],
@@ -24,7 +25,7 @@
         ],
         'EMPLOYEE' => [
             ['employee.dashboard', 'Dashboard'],
-            ['employee.placeholder', 'My Work', ['section' => 'my-work']],
+            ['employee.work.index', 'My Work'],
             ['employee.placeholder', 'Work History', ['section' => 'work-history']],
             ['employee.placeholder', 'My Performance', ['section' => 'my-performance']],
             ['employee.placeholder', 'Improvement Sessions', ['section' => 'improvement-sessions']],

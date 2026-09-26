@@ -11,12 +11,14 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\Employee\EmployeeDashboardController;
+use App\Http\Controllers\Employee\EmployeeWorkController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Qc\QcDashboardController;
 use App\Http\Controllers\RolePlaceholderController;
 use App\Http\Controllers\TeamLeader\TeamLeaderDashboardController;
 use App\Http\Controllers\TeamLeader\TeamMemberController;
 use App\Http\Controllers\TierController;
+use App\Http\Controllers\WorkController;
 use App\Http\Middleware\EnsureOfficeSessionIsValid;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureSuperAdmin;
@@ -81,6 +83,11 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
         Route::post('/clients/{client}/reactivate', [ClientController::class, 'reactivate'])->name('clients.reactivate');
 
         Route::post('/tiers', [TierController::class, 'store'])->name('tiers.store');
+
+        Route::get('/work', [WorkController::class, 'index'])->name('work.index');
+        Route::get('/work/create', [WorkController::class, 'create'])->name('work.create');
+        Route::post('/work', [WorkController::class, 'store'])->name('work.store');
+        Route::get('/work/{workOrder}', [WorkController::class, 'show'])->name('work.show');
     });
 
     Route::prefix('admin')
@@ -138,6 +145,10 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
         ->middleware(EnsureRole::class.':'.RoleName::EMPLOYEE->value)
         ->group(function () {
             Route::get('/', EmployeeDashboardController::class)->name('dashboard');
+            Route::get('/work', [EmployeeWorkController::class, 'index'])->name('work.index');
+            Route::get('/work/{assignment}', [EmployeeWorkController::class, 'show'])->name('work.show');
+            Route::post('/work/{assignment}/start', [EmployeeWorkController::class, 'start'])->name('work.start');
+            Route::post('/work/{assignment}/progress', [EmployeeWorkController::class, 'progress'])->name('work.progress');
             Route::get('/section/{section}', RolePlaceholderController::class)->name('placeholder');
         });
 

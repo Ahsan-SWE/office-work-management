@@ -8,6 +8,12 @@
         <a href="{{ route('clients.index') }}" class="text-sm font-semibold text-slate-500">← Clients</a>
 
         <div class="flex flex-wrap gap-2">
+            @if($client->status->value === 'ACTIVE' && auth()->user()->can('work.assign'))
+                <a href="{{ route('work.create', ['client' => $client->id]) }}" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                    + Assign Work
+                </a>
+            @endif
+
             @can('clients.update')
                 <a href="{{ route('clients.edit', $client) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold">Edit Client</a>
             @endcan
@@ -48,11 +54,31 @@
         </section>
 
         <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 class="font-bold">Work history</h2>
-            <p class="mt-2 text-sm text-slate-500">
-                Work Orders and Assignments will appear here starting in Milestone 2 / Batch 2.
-                The same client will be reused for repeated weekly or daily work.
-            </p>
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-bold">Recent work history</h2>
+                    <p class="mt-1 text-sm text-slate-500">The same client is reused for repeated work.</p>
+                </div>
+                @if($workOrders->isNotEmpty())
+                    <a href="{{ route('work.index', ['q' => $client->client_code]) }}" class="text-sm font-semibold">View All</a>
+                @endif
+            </div>
+
+            <div class="mt-4 space-y-3">
+                @forelse($workOrders as $workOrder)
+                    <a href="{{ route('work.show', $workOrder) }}" class="block rounded-xl border border-slate-200 p-4 hover:border-slate-400">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <p class="font-semibold">{{ $workOrder->work_code }} · {{ $workOrder->work_type->label() }}</p>
+                                <p class="mt-1 text-xs text-slate-500">{{ $workOrder->assignments->count() }} assignment(s) · {{ $workOrder->created_at?->format('Y-m-d H:i') }}</p>
+                            </div>
+                            <span class="text-xs font-semibold">{{ $workOrder->status->value }}</span>
+                        </div>
+                    </a>
+                @empty
+                    <p class="text-sm text-slate-500">No work orders yet.</p>
+                @endforelse
+            </div>
         </section>
     </div>
 

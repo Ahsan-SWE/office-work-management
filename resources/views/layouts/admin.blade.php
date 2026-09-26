@@ -21,6 +21,7 @@
                 $links = [
                     ['admin.dashboard', 'Dashboard'],
                     ['clients.index', 'Clients'],
+                    ['work.index', 'All Work'],
                     ['admin.teams.index', 'Teams'],
                     ['admin.allowed-emails.index', 'Allowed Gmail'],
                     ['admin.users.index', 'Users'],
