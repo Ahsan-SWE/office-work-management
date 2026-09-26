@@ -20,19 +20,26 @@
             @php
                 $links = [
                     ['admin.dashboard', 'Dashboard'],
+                    ['clients.index', 'Clients'],
                     ['admin.teams.index', 'Teams'],
                     ['admin.allowed-emails.index', 'Allowed Gmail'],
                     ['admin.users.index', 'Users'],
                     ['admin.audit-logs.index', 'Audit Logs'],
+                    ['admin.settings.index', 'Settings'],
                     ['notifications.index', 'Notifications'],
                 ];
             @endphp
 
             @foreach ($links as [$routeName, $label])
+                @php
+                    $pattern = str_ends_with($routeName, '.index')
+                        ? str_replace('.index', '.*', $routeName)
+                        : $routeName;
+                @endphp
                 <a
                     href="{{ route($routeName) }}"
                     class="rounded-lg px-3 py-2.5 font-medium transition
-                    {{ request()->routeIs(str_replace('.index', '.*', $routeName)) || request()->routeIs($routeName)
+                    {{ request()->routeIs($pattern) || request()->routeIs($routeName)
                         ? 'bg-white text-slate-950'
                         : 'text-slate-300 hover:bg-slate-900 hover:text-white' }}"
                 >
@@ -46,10 +53,8 @@
         <header class="border-b border-slate-200 bg-white">
             <div class="flex items-center justify-between gap-4 px-5 py-4 lg:px-8">
                 <div>
-                    <h1 class="text-lg font-bold">{{ $header ?? 'Super Admin' }}</h1>
-                    @isset($subheader)
-                        <p class="mt-0.5 text-sm text-slate-500">{{ $subheader }}</p>
-                    @endisset
+                    <h1 class="text-lg font-bold">@yield('page-title', $header ?? 'Super Admin')</h1>
+                    <p class="mt-0.5 text-sm text-slate-500">@yield('page-subtitle', $subheader ?? '')</p>
                 </div>
 
                 <div class="flex items-center gap-3">

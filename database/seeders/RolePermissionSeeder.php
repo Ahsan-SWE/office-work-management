@@ -81,6 +81,7 @@ class RolePermissionSeeder extends Seeder
             'clients.view_all',
             'clients.create',
             'clients.update',
+            'clients.deactivate',
             'work.assign',
             'work.edit',
             'work.cancel',

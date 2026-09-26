@@ -14,6 +14,7 @@
     $nav = match ($role) {
         'TEAM_LEADER' => [
             ['team-leader.dashboard', 'Dashboard'],
+            ['clients.index', 'Clients'],
             ['team-leader.members.index', 'My Team'],
             ['team-leader.placeholder', 'Team Work', ['section' => 'team-work']],
             ['team-leader.placeholder', 'Performance', ['section' => 'performance']],
@@ -52,7 +53,11 @@
                 @php
                     [$routeName, $label] = $item;
                     $params = $item[2] ?? [];
-                    $active = request()->routeIs($routeName)
+                    $pattern = str_ends_with($routeName, '.index')
+                        ? str_replace('.index', '.*', $routeName)
+                        : $routeName;
+
+                    $active = (request()->routeIs($routeName) || request()->routeIs($pattern))
                         && (empty($params) || request()->route('section') === ($params['section'] ?? null));
                 @endphp
                 <a

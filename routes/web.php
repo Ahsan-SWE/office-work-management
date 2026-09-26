@@ -4,15 +4,19 @@ use App\Enums\RoleName;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AllowedEmailController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\CatalogController;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\Employee\EmployeeDashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Qc\QcDashboardController;
 use App\Http\Controllers\RolePlaceholderController;
 use App\Http\Controllers\TeamLeader\TeamLeaderDashboardController;
 use App\Http\Controllers\TeamLeader\TeamMemberController;
+use App\Http\Controllers\TierController;
 use App\Http\Middleware\EnsureOfficeSessionIsValid;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureSuperAdmin;
@@ -64,6 +68,21 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])
         ->name('notifications.read');
 
+    Route::middleware(
+        EnsureRole::class.':'.RoleName::SUPER_ADMIN->value.','.RoleName::TEAM_LEADER->value
+    )->group(function () {
+        Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
+        Route::get('/clients/create', [ClientController::class, 'create'])->name('clients.create');
+        Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
+        Route::get('/clients/{client}', [ClientController::class, 'show'])->name('clients.show');
+        Route::get('/clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
+        Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+        Route::post('/clients/{client}/deactivate', [ClientController::class, 'deactivate'])->name('clients.deactivate');
+        Route::post('/clients/{client}/reactivate', [ClientController::class, 'reactivate'])->name('clients.reactivate');
+
+        Route::post('/tiers', [TierController::class, 'store'])->name('tiers.store');
+    });
+
     Route::prefix('admin')
         ->name('admin.')
         ->middleware(EnsureSuperAdmin::class)
@@ -96,6 +115,10 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
 
             Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
             Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
+
+            Route::get('/settings', SettingsController::class)->name('settings.index');
+            Route::post('/settings/{catalog}', [CatalogController::class, 'store'])->name('settings.catalogs.store');
+            Route::put('/settings/{catalog}/{id}', [CatalogController::class, 'update'])->name('settings.catalogs.update');
         });
 
     Route::prefix('team-leader')
