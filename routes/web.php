@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AllowedEmailController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CatalogController;
+use App\Http\Controllers\Admin\ImprovementSessionController as AdminImprovementSessionController;
 use App\Http\Controllers\Admin\PerformanceController as AdminPerformanceController;
 use App\Http\Controllers\Admin\QcEscalationController as AdminQcEscalationController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\Employee\EmployeeDashboardController;
 use App\Http\Controllers\Employee\EmployeeWorkController;
+use App\Http\Controllers\Employee\ImprovementSessionController as EmployeeImprovementSessionController;
 use App\Http\Controllers\Employee\PerformanceController as EmployeePerformanceController;
 use App\Http\Controllers\Employee\QcSubmissionController;
 use App\Http\Controllers\NotificationController;
@@ -23,6 +25,7 @@ use App\Http\Controllers\Qc\QcMajorErrorEmailController;
 use App\Http\Controllers\Qc\QcQueueController;
 use App\Http\Controllers\Qc\QcReviewController;
 use App\Http\Controllers\RolePlaceholderController;
+use App\Http\Controllers\TeamLeader\ImprovementSessionController as TeamLeaderImprovementSessionController;
 use App\Http\Controllers\TeamLeader\PerformanceController as TeamLeaderPerformanceController;
 use App\Http\Controllers\TeamLeader\QcEscalationController as TeamLeaderQcEscalationController;
 use App\Http\Controllers\TeamLeader\TeamLeaderDashboardController;
@@ -131,6 +134,11 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
             Route::delete('/users/{user}/permission-overrides/{override}', [UserController::class, 'removePermissionOverride'])->name('users.permission-overrides.destroy');
 
             Route::get('/performance', AdminPerformanceController::class)->name('performance.index');
+            Route::get('/improvement-sessions', [AdminImprovementSessionController::class, 'index'])->name('improvement-sessions.index');
+            Route::get('/improvement-sessions/{session}', [AdminImprovementSessionController::class, 'show'])->name('improvement-sessions.show');
+            Route::post('/improvement-sessions/{session}/start', [AdminImprovementSessionController::class, 'start'])->name('improvement-sessions.start');
+            Route::put('/improvement-sessions/{session}', [AdminImprovementSessionController::class, 'update'])->name('improvement-sessions.update');
+            Route::post('/improvement-sessions/{session}/complete', [AdminImprovementSessionController::class, 'complete'])->name('improvement-sessions.complete');
             Route::get('/qc-escalations', [AdminQcEscalationController::class, 'index'])->name('qc-escalations.index');
             Route::get('/qc-escalations/{escalation}', [AdminQcEscalationController::class, 'show'])->name('qc-escalations.show');
             Route::post('/qc-escalations/{escalation}/resolve', [AdminQcEscalationController::class, 'resolve'])->name('qc-escalations.resolve');
@@ -154,6 +162,11 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
             Route::put('/team/{user}/status', [TeamMemberController::class, 'updateStatus'])->name('members.status');
             Route::put('/team/{user}/capabilities', [TeamMemberController::class, 'updateCapabilities'])->name('members.capabilities');
             Route::get('/performance', TeamLeaderPerformanceController::class)->name('performance.index');
+            Route::get('/improvement-sessions', [TeamLeaderImprovementSessionController::class, 'index'])->name('improvement-sessions.index');
+            Route::get('/improvement-sessions/{session}', [TeamLeaderImprovementSessionController::class, 'show'])->name('improvement-sessions.show');
+            Route::post('/improvement-sessions/{session}/start', [TeamLeaderImprovementSessionController::class, 'start'])->name('improvement-sessions.start');
+            Route::put('/improvement-sessions/{session}', [TeamLeaderImprovementSessionController::class, 'update'])->name('improvement-sessions.update');
+            Route::post('/improvement-sessions/{session}/complete', [TeamLeaderImprovementSessionController::class, 'complete'])->name('improvement-sessions.complete');
             Route::get('/qc-reviews', [TeamLeaderQcEscalationController::class, 'index'])->name('qc-reviews.index');
             Route::get('/qc-reviews/{review}', [TeamLeaderQcEscalationController::class, 'show'])->name('qc-reviews.show');
             Route::post('/qc-reviews/{review}/appeal', [TeamLeaderQcEscalationController::class, 'store'])->name('qc-reviews.appeal');
@@ -166,6 +179,8 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
         ->group(function () {
             Route::get('/', EmployeeDashboardController::class)->name('dashboard');
             Route::get('/performance', EmployeePerformanceController::class)->name('performance.index');
+            Route::get('/improvement-sessions', [EmployeeImprovementSessionController::class, 'index'])->name('improvement-sessions.index');
+            Route::get('/improvement-sessions/{session}', [EmployeeImprovementSessionController::class, 'show'])->name('improvement-sessions.show');
             Route::get('/work', [EmployeeWorkController::class, 'index'])->name('work.index');
             Route::get('/work/{assignment}', [EmployeeWorkController::class, 'show'])->name('work.show');
             Route::post('/work/{assignment}/start', [EmployeeWorkController::class, 'start'])->name('work.start');

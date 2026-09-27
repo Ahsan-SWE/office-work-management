@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class MonthlyQualityPerformanceService
 {
+    public function __construct(
+        private readonly ImprovementSessionService $improvementSessions,
+    ) {}
+
     public function recalculateForReview(QcReview $review): void
     {
         if ($review->reviewed_at === null) {
@@ -56,6 +60,8 @@ class MonthlyQualityPerformanceService
                 ->whereDate('performance_month', $monthStart->toDateString())
                 ->delete();
 
+            $this->improvementSessions->reconcileEmployeeMonth($employeeId, $monthStart);
+
             return;
         }
 
@@ -79,6 +85,8 @@ class MonthlyQualityPerformanceService
                 'calculated_at' => now(),
             ],
         );
+
+        $this->improvementSessions->reconcileEmployeeMonth($employeeId, $monthStart);
     }
 
     public function rebuildAll(): int
@@ -120,6 +128,8 @@ class MonthlyQualityPerformanceService
                     $pair['month'],
                 );
             }
+
+            $this->improvementSessions->reconcileExistingSessionsAgainstProjections();
         });
 
         return count($pairs);

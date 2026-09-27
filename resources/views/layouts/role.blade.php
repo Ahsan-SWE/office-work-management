@@ -20,7 +20,7 @@
             ['work.index', 'Team Work'],
             ['team-leader.qc-reviews.index', 'QC Appeals'],
             ['team-leader.performance.index', 'Performance'],
-            ['team-leader.placeholder', 'Improvement Sessions', ['section' => 'improvement-sessions']],
+            ['team-leader.improvement-sessions.index', 'Improvement Sessions'],
             ['team-leader.placeholder', 'Monthly Reports', ['section' => 'monthly-reports']],
             ['notifications.index', 'Notifications'],
         ],
@@ -29,7 +29,7 @@
             ['employee.work.index', 'My Work'],
             ['employee.placeholder', 'Work History', ['section' => 'work-history']],
             ['employee.performance.index', 'My Performance'],
-            ['employee.placeholder', 'Improvement Sessions', ['section' => 'improvement-sessions']],
+            ['employee.improvement-sessions.index', 'Improvement Sessions'],
             ['notifications.index', 'Notifications'],
         ],
         'QC' => [
