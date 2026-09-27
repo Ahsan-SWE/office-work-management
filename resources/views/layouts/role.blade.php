@@ -18,6 +18,7 @@
             ['work.create', 'Assign Work'],
             ['team-leader.members.index', 'My Team'],
             ['work.index', 'Team Work'],
+            ['team-leader.qc-reviews.index', 'QC Appeals'],
             ['team-leader.placeholder', 'Performance', ['section' => 'performance']],
             ['team-leader.placeholder', 'Improvement Sessions', ['section' => 'improvement-sessions']],
             ['team-leader.placeholder', 'Monthly Reports', ['section' => 'monthly-reports']],
@@ -34,6 +35,7 @@
         'QC' => [
             ['qc.dashboard', 'QC Dashboard'],
             ['qc.queue', 'QC Queue'],
+            ['qc.gmail.show', 'QC Gmail'],
             ['notifications.index', 'Notifications'],
         ],
         default => [],
@@ -97,6 +99,12 @@
             @if(session('success'))
                 <div class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     {{ session('success') }}
+                </div>
+            @endif
+
+            @if(session('warning'))
+                <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    {{ session('warning') }}
                 </div>
             @endif
 

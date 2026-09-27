@@ -24,8 +24,7 @@ class QcSubmissionService
         private readonly AssignmentQcStateService $assignmentState,
         private readonly WorkOrderQcStateService $workOrderState,
         private readonly AuditLogger $audit,
-    ) {
-    }
+    ) {}
 
     public function submitOriginal(
         Assignment $assignment,
@@ -165,6 +164,15 @@ class QcSubmissionService
                 throw new DomainException('This assignment belongs to another employee.');
             }
 
+            if (in_array($lockedAssignment->status, [
+                AssignmentStatus::CANCELLED,
+                AssignmentStatus::DUPLICATE_REVIEW,
+                AssignmentStatus::DUPLICATE_CONFIRMED,
+                AssignmentStatus::COMPLETED,
+            ], true)) {
+                throw new DomainException('This assignment is already closed or in duplicate review and cannot receive a rework submission.');
+            }
+
             $existing = QcSubmission::query()
                 ->where('idempotency_key', $idempotencyKey)
                 ->first();
@@ -183,7 +191,9 @@ class QcSubmissionService
                 throw new DomainException('The selected QC review does not belong to this assignment.');
             }
 
-            if ($lockedReview->reviewed_at === null || (int) $lockedReview->rework_count < 1) {
+            $lockedReview->load('latestOverride');
+
+            if ($lockedReview->reviewed_at === null || $lockedReview->effectiveReworkCount() < 1) {
                 throw new DomainException('This QC review does not have unresolved rework.');
             }
 
@@ -197,7 +207,7 @@ class QcSubmissionService
                 'assignment_id' => $lockedAssignment->id,
                 'submitted_by' => $employee->id,
                 'submission_type' => QcSubmissionType::REWORK,
-                'submitted_count' => (int) $lockedReview->rework_count,
+                'submitted_count' => $lockedReview->effectiveReworkCount(),
                 'scope_text' => null,
                 'employee_note' => $note,
                 'source_review_id' => $lockedReview->id,

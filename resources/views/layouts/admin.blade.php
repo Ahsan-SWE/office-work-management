@@ -15,7 +15,6 @@
                 <p class="mt-1 text-xs text-slate-400">Super Admin</p>
             </div>
         </div>
-
         <nav class="grid gap-1 px-3 pb-5 text-sm sm:grid-cols-4 lg:grid-cols-1">
             @php
                 $links = [
@@ -25,12 +24,12 @@
                     ['admin.teams.index', 'Teams'],
                     ['admin.allowed-emails.index', 'Allowed Gmail'],
                     ['admin.users.index', 'Users'],
+                    ['admin.qc-escalations.index', 'QC Escalations'],
                     ['admin.audit-logs.index', 'Audit Logs'],
                     ['admin.settings.index', 'Settings'],
                     ['notifications.index', 'Notifications'],
                 ];
             @endphp
-
             @foreach ($links as [$routeName, $label])
                 @php
                     $pattern = str_ends_with($routeName, '.index')
@@ -49,7 +48,6 @@
             @endforeach
         </nav>
     </aside>
-
     <div>
         <header class="border-b border-slate-200 bg-white">
             <div class="flex items-center justify-between gap-4 px-5 py-4 lg:px-8">
@@ -57,7 +55,6 @@
                     <h1 class="text-lg font-bold">@yield('page-title', $header ?? 'Super Admin')</h1>
                     <p class="mt-0.5 text-sm text-slate-500">@yield('page-subtitle', $subheader ?? '')</p>
                 </div>
-
                 <div class="flex items-center gap-3">
                     <div class="hidden text-right sm:block">
                         <p class="text-sm font-semibold">{{ auth()->user()->name }}</p>
@@ -72,14 +69,17 @@
                 </div>
             </div>
         </header>
-
         <main class="px-5 py-6 lg:px-8">
             @if (session('success'))
                 <div class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     {{ session('success') }}
                 </div>
             @endif
-
+            @if (session('warning'))
+                <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    {{ session('warning') }}
+                </div>
+            @endif
             @if ($errors->any())
                 <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
                     <p class="font-semibold">Please fix the following:</p>
@@ -90,7 +90,6 @@
                     </ul>
                 </div>
             @endif
-
             @yield('content')
         </main>
     </div>

@@ -51,6 +51,7 @@ class EmployeeWorkController extends Controller
             'qcSubmissions.review.reviewer:id,name,email',
             'qcSubmissions.review.issues.reason:id,name',
             'qcSubmissions.review.bonusItems.reason:id,name',
+            'qcSubmissions.review.latestOverride',
             'qcSubmissions.sourceReview:id,review_code',
         ]);
 

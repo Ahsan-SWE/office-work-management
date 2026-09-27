@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Qc;
 use App\Enums\QcReasonType;
 use App\Http\Controllers\Controller;
 use App\Models\AssetSection;
+use App\Models\QcGmailConnection;
 use App\Models\QcReason;
 use App\Models\QcSubmission;
 use App\Services\Qc\QcReviewService;
@@ -21,15 +22,23 @@ class QcReviewController extends Controller
 
         $submission->load([
             'assignment.employee:id,name,email,primary_team_id',
+            'assignment.employee.primaryTeam.teamLeader:id,name,email',
             'assignment.section:id,name',
             'assignment.workOrder.client:id,client_code,name,google_sheet_url',
             'assignment.workOrder.creator:id,name,email',
             'submitter:id,name,email',
             'sourceReview.issues.reason:id,name',
             'review.reviewer:id,name,email',
+            'review.releasedBy:id,name,email',
             'review.issues.reason:id,name',
             'review.issues.section:id,name',
             'review.bonusItems.reason:id,name',
+            'review.gmailAttempts',
+            'review.lockEvents.actor:id,name,email',
+            'review.lockEvents.reviewer:id,name,email',
+            'review.escalation',
+            'review.latestOverride',
+            'review.overrides.superAdmin:id,name,email',
         ]);
 
         $history = QcSubmission::query()
@@ -37,6 +46,7 @@ class QcReviewController extends Controller
                 'review.reviewer:id,name,email',
                 'review.issues.reason:id,name',
                 'review.bonusItems.reason:id,name',
+                'review.latestOverride',
             ])
             ->where('assignment_id', $submission->assignment_id)
             ->where('id', '<=', $submission->id)
@@ -46,6 +56,10 @@ class QcReviewController extends Controller
         return view('qc.submissions.show', [
             'submission' => $submission,
             'history' => $history,
+            'gmailConnection' => QcGmailConnection::query()
+                ->where('user_id', $request->user()->id)
+                ->first(),
+            'reviewLockMinutes' => max(5, (int) config('office.qc.review_lock_minutes', 120)),
             'negativeReasons' => QcReason::query()
                 ->where('type', QcReasonType::NEGATIVE->value)
                 ->where('is_active', true)
@@ -82,6 +96,32 @@ class QcReviewController extends Controller
             ->with('success', "{$review->review_code} started. This submission is now locked to you.");
     }
 
+    public function release(
+        Request $request,
+        QcSubmission $submission,
+        QcReviewService $service,
+    ): RedirectResponse {
+        $this->authorizeSubmission($request, $submission);
+
+        $data = $request->validate([
+            'release_reason' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        try {
+            $service->releaseReview(
+                $submission,
+                $request->user(),
+                $data['release_reason'] ?? null,
+            );
+        } catch (DomainException $exception) {
+            return back()->withErrors(['qc' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('qc.queue', ['tab' => 'waiting'])
+            ->with('success', 'QC review lock released. The submission is available in the queue again.');
+    }
+
     public function finish(
         Request $request,
         QcSubmission $submission,
@@ -92,6 +132,7 @@ class QcReviewController extends Controller
         $data = $request->validate([
             'approved_count' => ['required', 'integer', 'min:0', 'max:1000000'],
             'rework_count' => ['required', 'integer', 'min:0', 'max:1000000'],
+            'is_major_error' => ['nullable', 'boolean'],
             'review_comment' => ['nullable', 'string', 'max:10000'],
 
             'issues' => ['nullable', 'array', 'max:50'],
@@ -113,12 +154,15 @@ class QcReviewController extends Controller
             return back()->withInput()->withErrors(['qc' => $exception->getMessage()]);
         }
 
+        $message = "{$review->review_code} completed: {$review->result->value}.";
+
+        if ($review->is_major_error) {
+            $message .= ' Major Error saved; send the required Gmail escalation from this review page.';
+        }
+
         return redirect()
             ->route('qc.submissions.show', $submission)
-            ->with(
-                'success',
-                "{$review->review_code} completed: {$review->result->value}."
-            );
+            ->with('success', $message);
     }
 
     private function authorizeSubmission(Request $request, QcSubmission $submission): void

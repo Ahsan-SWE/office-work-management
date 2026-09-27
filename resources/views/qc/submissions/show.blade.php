@@ -94,11 +94,13 @@
                                     <p class="font-semibold">{{ $item->review->review_code }} · {{ $item->review->reviewer->name }}</p>
                                     @if($item->review->reviewed_at)
                                         <p class="mt-1">
-                                            {{ $item->review->result->value }} ·
-                                            Approved {{ $item->review->approved_count }} ·
-                                            Rework {{ $item->review->rework_count }} ·
-                                            Negative {{ $item->review->negative_points }}/5 ·
-                                            Bonus {{ $item->review->bonus_points }}/5
+                                            {{ $item->review->effectiveResult()?->value }} ·
+                                            Approved {{ $item->review->effectiveApprovedCount() }} ·
+                                            Rework {{ $item->review->effectiveReworkCount() }} ·
+                                            Negative {{ $item->review->effectiveNegativePoints() }}/5 ·
+                                            Bonus {{ $item->review->effectiveBonusPoints() }}/5
+                                            @if($item->review->effectiveIsMajorError()) · <strong class="text-red-700">MAJOR ERROR</strong> @endif
+                                            @if($item->review->latestOverride) · <strong class="text-amber-700">SA OVERRIDE</strong> @endif
                                         </p>
                                         @if($item->review->review_comment)
                                             <p class="mt-2 text-slate-600">{{ $item->review->review_comment }}</p>
@@ -125,22 +127,112 @@
                     </form>
                 </section>
             @elseif($submission->status === \App\Enums\QcSubmissionStatus::REVIEWING && $submission->review?->reviewer_id !== auth()->id())
+                @php
+                    $lockIsStale = $submission->review?->started_at?->lte(now()->subMinutes($reviewLockMinutes)) ?? false;
+                @endphp
                 <section class="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
                     <h2 class="font-bold text-amber-900">Locked</h2>
-                    <p class="mt-2 text-sm text-amber-800">Reviewing by {{ $submission->review?->reviewer?->name ?? 'another QC reviewer' }}.</p>
+                    <p class="mt-2 text-sm text-amber-800">
+                        Reviewing by {{ $submission->review?->reviewer?->name ?? 'another QC reviewer' }}.
+                        A lock becomes recoverable after {{ $reviewLockMinutes }} minutes.
+                    </p>
+                    @if($lockIsStale)
+                        <form method="POST" action="{{ route('qc.submissions.release', $submission) }}" class="mt-4 grid gap-2">
+                            @csrf
+                            <textarea name="release_reason" rows="2" class="w-full rounded-lg border border-amber-300 px-3 py-2 text-sm" placeholder="Why are you recovering this stale lock?"></textarea>
+                            <button class="rounded-lg bg-amber-800 px-4 py-2.5 text-sm font-semibold text-white">
+                                Release stale lock
+                            </button>
+                        </form>
+                    @endif
                 </section>
             @elseif($submission->status === \App\Enums\QcSubmissionStatus::REVIEWED)
                 <section class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
                     <h2 class="font-bold text-emerald-900">Review completed</h2>
                     @if($submission->review)
-                        <p class="mt-2 text-sm text-emerald-900">{{ $submission->review->review_code }} · {{ $submission->review->result?->value }}</p>
-                        <p class="mt-2 text-sm text-emerald-800">
-                            Approved {{ $submission->review->approved_count }} ·
-                            Rework {{ $submission->review->rework_count }} ·
-                            Negative {{ $submission->review->negative_points }}/5 ·
-                            Bonus {{ $submission->review->bonus_points }}/5
+                        <p class="mt-2 text-sm text-emerald-900">
+                            {{ $submission->review->review_code }} · {{ $submission->review->effectiveResult()?->value }}
+                            @if($submission->review->effectiveIsMajorError())
+                                · <strong class="text-red-700">MAJOR ERROR</strong>
+                            @endif
                         </p>
+                        <p class="mt-2 text-sm text-emerald-800">
+                            Approved {{ $submission->review->effectiveApprovedCount() }} ·
+                            Rework {{ $submission->review->effectiveReworkCount() }} ·
+                            Negative {{ $submission->review->effectiveNegativePoints() }}/5 ·
+                            Bonus {{ $submission->review->effectiveBonusPoints() }}/5
+                        </p>
+                        @if($submission->review->latestOverride)
+                            <p class="mt-2 rounded-lg bg-amber-100 px-3 py-2 text-xs text-amber-900">
+                                Super Admin override is active. The original QC decision remains preserved in history.
+                            </p>
+                        @endif
                     @endif
+                </section>
+
+                @if(
+                    $submission->review
+                    && $submission->review->effectiveIsMajorError()
+                    && $submission->review->reviewer_id === auth()->id()
+                )
+                    <section class="rounded-2xl border border-red-200 bg-white p-5 shadow-sm">
+                        <h2 class="font-bold text-red-800">Major Error Gmail escalation</h2>
+                        <p class="mt-1 text-sm text-slate-600">
+                            Recipient: {{ $submission->assignment->employee->email }}.
+                            Default CC: Team Leader + active Super Admin(s).
+                        </p>
+
+                        @if($submission->review->major_error_email_sent_at)
+                            <div class="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                                Sent {{ $submission->review->major_error_email_sent_at->format('Y-m-d H:i') }} from your connected Gmail.
+                            </div>
+                        @elseif(! $gmailConnection?->isConnected())
+                            <a href="{{ route('qc.gmail.show') }}" class="mt-4 block rounded-lg bg-red-700 px-4 py-2.5 text-center text-sm font-semibold text-white">
+                                Connect QC Gmail
+                            </a>
+                        @else
+                            <form method="POST" action="{{ route('qc.reviews.major-error-email', $submission->review) }}" class="mt-4 grid gap-3">
+                                @csrf
+                                <div>
+                                    <label class="text-sm font-semibold">Optional extra CC</label>
+                                    <textarea name="extra_cc" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="email1@example.com, email2@example.com">{{ old('extra_cc') }}</textarea>
+                                </div>
+                                <button class="rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white">
+                                    Send Major Error Gmail
+                                </button>
+                            </form>
+                        @endif
+
+                        @if($submission->review->gmailAttempts->isNotEmpty())
+                            <div class="mt-4 space-y-2">
+                                @foreach($submission->review->gmailAttempts->sortByDesc('attempt_no') as $attempt)
+                                    <div class="rounded-lg bg-slate-50 px-3 py-2 text-xs">
+                                        Attempt {{ $attempt->attempt_no }} · {{ $attempt->status }}
+                                        · {{ $attempt->attempted_at?->format('Y-m-d H:i') }}
+                                        @if($attempt->error_message)
+                                            <p class="mt-1 text-red-700">{{ $attempt->error_message }}</p>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </section>
+                @endif
+            @endif
+
+            @if(
+                $submission->status === \App\Enums\QcSubmissionStatus::REVIEWING
+                && $submission->review?->reviewer_id === auth()->id()
+                && $submission->review?->reviewed_at === null
+            )
+                <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h2 class="font-bold">Review lock</h2>
+                    <p class="mt-1 text-sm text-slate-500">If you cannot continue, release the lock so another eligible QC can take it.</p>
+                    <form method="POST" action="{{ route('qc.submissions.release', $submission) }}" class="mt-3 grid gap-2">
+                        @csrf
+                        <input name="release_reason" maxlength="1000" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Optional release reason">
+                        <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold">Release my lock</button>
+                    </form>
                 </section>
             @endif
 
@@ -190,6 +282,15 @@
                                 <input type="number" name="rework_count" min="0" max="{{ $submission->submitted_count }}" value="{{ old('rework_count', 0) }}" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required>
                             </div>
                         </div>
+
+                        <label class="mt-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-3">
+                            <input type="hidden" name="is_major_error" value="0">
+                            <input type="checkbox" name="is_major_error" value="1" class="mt-1" @checked(old('is_major_error'))>
+                            <span>
+                                <span class="block text-sm font-bold text-red-800">Major Error</span>
+                                <span class="block text-xs text-red-700">Requires at least 1 negative point. After the review is saved, the reviewing QC must send the Gmail escalation.</span>
+                            </span>
+                        </label>
 
                         <div class="mt-3">
                             <label class="text-sm font-semibold">Review Comment</label>

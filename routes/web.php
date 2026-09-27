@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AllowedEmailController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CatalogController;
+use App\Http\Controllers\Admin\QcEscalationController as AdminQcEscalationController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
@@ -15,9 +16,12 @@ use App\Http\Controllers\Employee\EmployeeWorkController;
 use App\Http\Controllers\Employee\QcSubmissionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Qc\QcDashboardController;
+use App\Http\Controllers\Qc\QcGmailController;
+use App\Http\Controllers\Qc\QcMajorErrorEmailController;
 use App\Http\Controllers\Qc\QcQueueController;
 use App\Http\Controllers\Qc\QcReviewController;
 use App\Http\Controllers\RolePlaceholderController;
+use App\Http\Controllers\TeamLeader\QcEscalationController as TeamLeaderQcEscalationController;
 use App\Http\Controllers\TeamLeader\TeamLeaderDashboardController;
 use App\Http\Controllers\TeamLeader\TeamMemberController;
 use App\Http\Controllers\TierController;
@@ -123,6 +127,11 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
             Route::post('/users/{user}/permission-overrides', [UserController::class, 'setPermissionOverride'])->name('users.permission-overrides.store');
             Route::delete('/users/{user}/permission-overrides/{override}', [UserController::class, 'removePermissionOverride'])->name('users.permission-overrides.destroy');
 
+            Route::get('/qc-escalations', [AdminQcEscalationController::class, 'index'])->name('qc-escalations.index');
+            Route::get('/qc-escalations/{escalation}', [AdminQcEscalationController::class, 'show'])->name('qc-escalations.show');
+            Route::post('/qc-escalations/{escalation}/resolve', [AdminQcEscalationController::class, 'resolve'])->name('qc-escalations.resolve');
+            Route::post('/qc-escalations/{escalation}/override', [AdminQcEscalationController::class, 'override'])->name('qc-escalations.override');
+
             Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
             Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
 
@@ -140,6 +149,9 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
             Route::get('/team/{user}', [TeamMemberController::class, 'show'])->name('members.show');
             Route::put('/team/{user}/status', [TeamMemberController::class, 'updateStatus'])->name('members.status');
             Route::put('/team/{user}/capabilities', [TeamMemberController::class, 'updateCapabilities'])->name('members.capabilities');
+            Route::get('/qc-reviews', [TeamLeaderQcEscalationController::class, 'index'])->name('qc-reviews.index');
+            Route::get('/qc-reviews/{review}', [TeamLeaderQcEscalationController::class, 'show'])->name('qc-reviews.show');
+            Route::post('/qc-reviews/{review}/appeal', [TeamLeaderQcEscalationController::class, 'store'])->name('qc-reviews.appeal');
             Route::get('/section/{section}', RolePlaceholderController::class)->name('placeholder');
         });
 
@@ -163,9 +175,17 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
         ->group(function () {
             Route::get('/', QcDashboardController::class)->name('dashboard');
             Route::get('/queue', [QcQueueController::class, 'index'])->name('queue');
+
+            Route::get('/gmail', [QcGmailController::class, 'show'])->name('gmail.show');
+            Route::get('/gmail/connect', [QcGmailController::class, 'redirect'])->name('gmail.redirect');
+            Route::get('/gmail/callback', [QcGmailController::class, 'callback'])->name('gmail.callback');
+            Route::post('/gmail/disconnect', [QcGmailController::class, 'disconnect'])->name('gmail.disconnect');
+
             Route::get('/submissions/{submission}', [QcReviewController::class, 'show'])->name('submissions.show');
             Route::post('/submissions/{submission}/start', [QcReviewController::class, 'start'])->name('submissions.start');
+            Route::post('/submissions/{submission}/release', [QcReviewController::class, 'release'])->name('submissions.release');
             Route::post('/submissions/{submission}/finish', [QcReviewController::class, 'finish'])->name('submissions.finish');
+            Route::post('/reviews/{review}/major-error-email', [QcMajorErrorEmailController::class, 'store'])->name('reviews.major-error-email');
             Route::get('/section/{section}', RolePlaceholderController::class)->name('placeholder');
         });
 });

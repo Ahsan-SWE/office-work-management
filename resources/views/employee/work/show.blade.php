@@ -108,7 +108,7 @@
                                 <div class="flex flex-wrap items-start justify-between gap-3">
                                     <div>
                                         <p class="font-bold">{{ $review->review_code }}</p>
-                                        <p class="text-sm text-slate-600">{{ $review->submission->submission_code }} · {{ $review->rework_count }} item(s) returned</p>
+                                        <p class="text-sm text-slate-600">{{ $review->submission->submission_code }} · {{ $review->effectiveReworkCount() }} item(s) returned</p>
                                     </div>
                                     <span class="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">REWORK</span>
                                 </div>
@@ -137,7 +137,7 @@
                                         <textarea name="employee_note" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="What was corrected?"></textarea>
                                     </div>
                                     <button class="rounded-lg bg-red-700 px-4 py-2.5 text-sm font-semibold text-white">
-                                        Resubmit {{ $review->rework_count }} Rework Item(s)
+                                        Resubmit {{ $review->effectiveReworkCount() }} Rework Item(s)
                                     </button>
                                 </form>
                             </div>
@@ -167,15 +167,17 @@
                                     <p class="font-semibold">
                                         {{ $submission->review->review_code }}
                                         @if($submission->review->result)
-                                            · {{ $submission->review->result->value }}
+                                            · {{ $submission->review->effectiveResult()?->value }}
                                         @endif
                                     </p>
                                     @if($submission->review->reviewed_at)
                                         <p class="mt-1 text-slate-600">
-                                            Approved {{ $submission->review->approved_count }} ·
-                                            Rework {{ $submission->review->rework_count }} ·
-                                            Negative {{ $submission->review->negative_points }}/5 ·
-                                            Bonus {{ $submission->review->bonus_points }}/5
+                                            Approved {{ $submission->review->effectiveApprovedCount() }} ·
+                                            Rework {{ $submission->review->effectiveReworkCount() }} ·
+                                            Negative {{ $submission->review->effectiveNegativePoints() }}/5 ·
+                                            Bonus {{ $submission->review->effectiveBonusPoints() }}/5
+                                            @if($submission->review->effectiveIsMajorError()) · <strong class="text-red-700">MAJOR ERROR</strong> @endif
+                                            @if($submission->review->latestOverride) · <strong class="text-amber-700">SA OVERRIDE</strong> @endif
                                         </p>
                                     @else
                                         <p class="mt-1 text-slate-500">Reviewing by {{ $submission->review->reviewer->name }}</p>

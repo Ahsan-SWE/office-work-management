@@ -27,10 +27,15 @@ class AssignmentQcStateService
             ])
             ->sum('submitted_count');
 
-        $approvedTotal = (int) QcReview::query()
+        $reviewed = QcReview::query()
+            ->with('latestOverride')
             ->whereNotNull('reviewed_at')
             ->whereHas('submission', fn ($query) => $query->where('assignment_id', $assignment->id))
-            ->sum('approved_count');
+            ->get();
+
+        $approvedTotal = (int) $reviewed->sum(
+            fn (QcReview $review) => $review->effectiveApprovedCount()
+        );
 
         $unresolvedReviews = $this->unresolvedReviews($assignment);
 
@@ -51,7 +56,9 @@ class AssignmentQcStateService
             'original_remaining' => max(0, $effectiveTotal - $originalSubmitted),
             'approved_total' => min($approvedTotal, $effectiveTotal),
             'available_to_submit' => max(0, min($effectiveCompleted, $effectiveTotal) - $originalSubmitted),
-            'unresolved_rework' => (int) $unresolvedReviews->sum('rework_count'),
+            'unresolved_rework' => (int) $unresolvedReviews->sum(
+                fn (QcReview $review) => $review->effectiveReworkCount()
+            ),
             'unresolved_reviews' => $unresolvedReviews,
             'waiting_count' => $waitingCount,
             'reviewing_count' => $reviewingCount,
@@ -66,13 +73,15 @@ class AssignmentQcStateService
                 'submission:id,submission_code,assignment_id,submitted_count,submission_type',
                 'issues.reason:id,name',
                 'issues.section:id,name',
+                'latestOverride',
             ])
             ->whereNotNull('reviewed_at')
-            ->where('rework_count', '>', 0)
             ->whereHas('submission', fn ($query) => $query->where('assignment_id', $assignment->id))
             ->whereDoesntHave('reworkSubmission')
             ->orderBy('reviewed_at')
-            ->get();
+            ->get()
+            ->filter(fn (QcReview $review) => $review->effectiveReworkCount() > 0)
+            ->values();
     }
 
     public function recalculate(Assignment $assignment): Assignment
@@ -92,22 +101,17 @@ class AssignmentQcStateService
         $nextStatus = match (true) {
             $summary['approved_total'] >= $summary['effective_total']
                 && $summary['unresolved_rework'] === 0
-                && $summary['active_submission_count'] === 0
-                => AssignmentStatus::COMPLETED,
+                && $summary['active_submission_count'] === 0 => AssignmentStatus::COMPLETED,
 
-            $summary['unresolved_rework'] > 0
-                => AssignmentStatus::REWORK,
+            $summary['unresolved_rework'] > 0 => AssignmentStatus::REWORK,
 
             $summary['original_submitted'] >= $summary['effective_total']
-                && $summary['reviewing_count'] > 0
-                => AssignmentStatus::QC_REVIEWING,
+                && $summary['reviewing_count'] > 0 => AssignmentStatus::QC_REVIEWING,
 
             $summary['original_submitted'] >= $summary['effective_total']
-                && $summary['waiting_count'] > 0
-                => AssignmentStatus::SUBMITTED_QC,
+                && $summary['waiting_count'] > 0 => AssignmentStatus::SUBMITTED_QC,
 
-            $assignment->status === AssignmentStatus::PENDING && $assignment->started_at === null
-                => AssignmentStatus::PENDING,
+            $assignment->status === AssignmentStatus::PENDING && $assignment->started_at === null => AssignmentStatus::PENDING,
 
             default => AssignmentStatus::ONGOING,
         };
@@ -116,6 +120,10 @@ class AssignmentQcStateService
 
         if ($nextStatus === AssignmentStatus::COMPLETED && $assignment->completed_at === null) {
             $updates['completed_at'] = now();
+        }
+
+        if ($nextStatus !== AssignmentStatus::COMPLETED && $assignment->completed_at !== null) {
+            $updates['completed_at'] = null;
         }
 
         $assignment->update($updates);
