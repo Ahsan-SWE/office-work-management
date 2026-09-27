@@ -24,6 +24,7 @@
                     ['admin.teams.index', 'Teams'],
                     ['admin.allowed-emails.index', 'Allowed Gmail'],
                     ['admin.users.index', 'Users'],
+['admin.performance.index', 'Performance'],
                     ['admin.qc-escalations.index', 'QC Escalations'],
                     ['admin.audit-logs.index', 'Audit Logs'],
                     ['admin.settings.index', 'Settings'],

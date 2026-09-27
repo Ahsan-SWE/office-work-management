@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AllowedEmailController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CatalogController;
+use App\Http\Controllers\Admin\PerformanceController as AdminPerformanceController;
 use App\Http\Controllers\Admin\QcEscalationController as AdminQcEscalationController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TeamController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\Employee\EmployeeDashboardController;
 use App\Http\Controllers\Employee\EmployeeWorkController;
+use App\Http\Controllers\Employee\PerformanceController as EmployeePerformanceController;
 use App\Http\Controllers\Employee\QcSubmissionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Qc\QcDashboardController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\Qc\QcMajorErrorEmailController;
 use App\Http\Controllers\Qc\QcQueueController;
 use App\Http\Controllers\Qc\QcReviewController;
 use App\Http\Controllers\RolePlaceholderController;
+use App\Http\Controllers\TeamLeader\PerformanceController as TeamLeaderPerformanceController;
 use App\Http\Controllers\TeamLeader\QcEscalationController as TeamLeaderQcEscalationController;
 use App\Http\Controllers\TeamLeader\TeamLeaderDashboardController;
 use App\Http\Controllers\TeamLeader\TeamMemberController;
@@ -127,6 +130,7 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
             Route::post('/users/{user}/permission-overrides', [UserController::class, 'setPermissionOverride'])->name('users.permission-overrides.store');
             Route::delete('/users/{user}/permission-overrides/{override}', [UserController::class, 'removePermissionOverride'])->name('users.permission-overrides.destroy');
 
+            Route::get('/performance', AdminPerformanceController::class)->name('performance.index');
             Route::get('/qc-escalations', [AdminQcEscalationController::class, 'index'])->name('qc-escalations.index');
             Route::get('/qc-escalations/{escalation}', [AdminQcEscalationController::class, 'show'])->name('qc-escalations.show');
             Route::post('/qc-escalations/{escalation}/resolve', [AdminQcEscalationController::class, 'resolve'])->name('qc-escalations.resolve');
@@ -149,6 +153,7 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
             Route::get('/team/{user}', [TeamMemberController::class, 'show'])->name('members.show');
             Route::put('/team/{user}/status', [TeamMemberController::class, 'updateStatus'])->name('members.status');
             Route::put('/team/{user}/capabilities', [TeamMemberController::class, 'updateCapabilities'])->name('members.capabilities');
+            Route::get('/performance', TeamLeaderPerformanceController::class)->name('performance.index');
             Route::get('/qc-reviews', [TeamLeaderQcEscalationController::class, 'index'])->name('qc-reviews.index');
             Route::get('/qc-reviews/{review}', [TeamLeaderQcEscalationController::class, 'show'])->name('qc-reviews.show');
             Route::post('/qc-reviews/{review}/appeal', [TeamLeaderQcEscalationController::class, 'store'])->name('qc-reviews.appeal');
@@ -160,6 +165,7 @@ Route::middleware(['auth', EnsureOfficeSessionIsValid::class])->group(function (
         ->middleware(EnsureRole::class.':'.RoleName::EMPLOYEE->value)
         ->group(function () {
             Route::get('/', EmployeeDashboardController::class)->name('dashboard');
+            Route::get('/performance', EmployeePerformanceController::class)->name('performance.index');
             Route::get('/work', [EmployeeWorkController::class, 'index'])->name('work.index');
             Route::get('/work/{assignment}', [EmployeeWorkController::class, 'show'])->name('work.show');
             Route::post('/work/{assignment}/start', [EmployeeWorkController::class, 'start'])->name('work.start');

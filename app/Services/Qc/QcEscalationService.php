@@ -14,6 +14,7 @@ use App\Models\QcSubmission;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\WorkOrder;
+use App\Services\Performance\MonthlyQualityPerformanceService;
 use App\Support\Audit\AuditLogger;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class QcEscalationService
         private readonly AssignmentQcStateService $assignmentState,
         private readonly WorkOrderQcStateService $workOrderState,
         private readonly AuditLogger $audit,
+        private readonly MonthlyQualityPerformanceService $monthlyQualityPerformance,
     ) {}
 
     public function escalate(QcReview $review, User $teamLeader, string $reason): QcReviewEscalation
@@ -223,6 +225,7 @@ class QcEscalationService
             return $override;
         });
 
+        $this->monthlyQualityPerformance->recalculateForReview($review);
         $this->notifyOverride($review, $override);
 
         return $override;

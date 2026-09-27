@@ -17,6 +17,7 @@ use App\Models\QcReviewIssue;
 use App\Models\QcReviewLockEvent;
 use App\Models\QcSubmission;
 use App\Models\User;
+use App\Services\Performance\MonthlyQualityPerformanceService;
 use App\Support\Audit\AuditLogger;
 use DomainException;
 use Illuminate\Support\Collection;
@@ -28,6 +29,7 @@ class QcReviewService
         private readonly AssignmentQcStateService $assignmentState,
         private readonly WorkOrderQcStateService $workOrderState,
         private readonly AuditLogger $audit,
+        private readonly MonthlyQualityPerformanceService $monthlyQualityPerformance,
     ) {}
 
     public function startReview(QcSubmission $submission, User $qc): QcReview
@@ -387,6 +389,7 @@ class QcReviewService
             ]);
         });
 
+        $this->monthlyQualityPerformance->recalculateForReview($review);
         $this->notifyReviewResult($review->id);
 
         return $review;
